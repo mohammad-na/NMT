@@ -145,13 +145,13 @@ for word, i in target_token_index.items():
 # _____ Define model input/target ____________________
 encoder_input_data = np.zeros(
     (len(lines.eng), max_en),
-    dtype='float16')
+    dtype='float32')
 decoder_input_data = np.zeros(
     (len(lines.ar), max_ar),
-    dtype='float16')
+    dtype='float32')
 decoder_target_data = np.zeros(
     (len(lines.ar), max_ar, ar_EMBEDDING_DIM), # in one-hot .. (len(lines.ar), max_ar, num_decoder_tokens)
-    dtype='float16')
+    dtype='float32')
 
 for i, (input_text, target_text) in enumerate(zip(lines.eng, lines.ar)):
     for t, word in enumerate(input_text.split()):
@@ -172,7 +172,7 @@ lstm_units = 1024
 epoch = 60
 batch_size = 128
 # ____________________________Encoder __________________________
-encoder_inputs = Input(shape=(None,), dtype='float16')
+encoder_inputs = Input(shape=(None,), dtype='float32')
 en_x = Embedding(En_vocab_size,
                  en_EMBEDDING_DIM,
                  weights=[en_embedding_matrix],
@@ -180,7 +180,7 @@ en_x = Embedding(En_vocab_size,
                  trainable=False)
 en = en_x(encoder_inputs)
 
-encoder = LSTM(lstm_units, return_state=True, dtype='float16')
+encoder = LSTM(lstm_units, return_state=True, dtype='float32')
 
 encoder_outputs, state_h, state_c = encoder(en)
 # We discard `encoder_outputs` and only keep the states.
@@ -188,7 +188,7 @@ encoder_states = [state_h, state_c]
 
 # __________________________Decoder_____________________________
 # Set up the decoder, using `encoder_states` as initial state.
-decoder_inputs = Input(shape=(None,), dtype='float16')
+decoder_inputs = Input(shape=(None,), dtype='float32')
 
 dex = Embedding(Ar_vocab_size,
                 ar_EMBEDDING_DIM,
@@ -198,12 +198,12 @@ dex = Embedding(Ar_vocab_size,
 
 final_dex = dex(decoder_inputs)
 
-decoder_lstm = LSTM(lstm_units, return_sequences=True, return_state=True, dtype='float16')
+decoder_lstm = LSTM(lstm_units, return_sequences=True, return_state=True, dtype='float32')
 
 decoder_outputs, _, _ = decoder_lstm(final_dex,
                                      initial_state=encoder_states)
 
-decoder_dense = Dense(ar_EMBEDDING_DIM, activation='softmax', dtype='float16')
+decoder_dense = Dense(ar_EMBEDDING_DIM, activation='softmax', dtype='float32')
 
 decoder_outputs = decoder_dense(decoder_outputs)
 
