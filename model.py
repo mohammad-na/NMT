@@ -14,15 +14,15 @@ from keras.preprocessing.text import Tokenizer
 # ............................................................................................#
 # this function remove noise from word (Strip Harakat)
 def deNoise(text):
-    noise = re.compile(""" ø    | # Tashdid
-                                                  ó    | # Fatha
-                                                  ð    | # Tanwin Fath
-                                                  õ    | # Damma
-                                                  ñ    | # Tanwin Damm
-                                                  ö    | # Kasra
-                                                  ò    | # Tanwin Kasr
-                                                  ú    | # Sukun
-                                                  Ü     # Tatwil/Kashida
+    noise = re.compile(""" Ã¸    | # Tashdid
+                                                  Ã³    | # Fatha
+                                                  Ã°    | # Tanwin Fath
+                                                  Ãµ    | # Damma
+                                                  Ã±    | # Tanwin Damm
+                                                  Ã¶    | # Kasra
+                                                  Ã²    | # Tanwin Kasr
+                                                  Ãº    | # Sukun
+                                                  Ãœ     # Tatwil/Kashida
                          """, re.VERBOSE)
     text = re.sub(noise, '', text)
     return text
@@ -48,7 +48,7 @@ lines.ar = lines.ar.apply(lambda x: re.sub("'", '', x)).apply(lambda x: re.sub("
 
 exclude_en = set(string.punctuation)
 lines.eng = lines.eng.apply(lambda x: ''.join(ch for ch in x if ch not in exclude_en))
-exclude_ar = set(['¿','!','.',',','¡'])
+exclude_ar = set(['Â¿','!','.',',','Â¡'])
 lines.ar = lines.ar.apply(lambda x: ''.join(ch for ch in x if ch not in exclude_ar))
 
 remove_digits = str.maketrans('', '', digits)
@@ -187,9 +187,11 @@ en_x = Embedding(num_encoder_tokens,
                  trainable=False)
 en = en_x(encoder_inputs)
 
-encoder = LSTM(lstm_units, return_state=True)
+encoder1 = LSTM(lstm_units, return_state=True, return_sequences = True)
+encoder2 = LSTM(lstm_units, return_state=True, return_sequences = True)
+encoder = LSTM(lstm_units, return_state=True, return_sequences = True)
 
-encoder_outputs, state_h, state_c = encoder(en)
+encoder_outputs, state_h, state_c = encoder(encoder2(encoder1(en)))
 # We discard `encoder_outputs` and only keep the states.
 encoder_states = [state_h, state_c]
 
@@ -205,10 +207,13 @@ dex = Embedding(num_decoder_tokens,
 
 final_dex = dex(decoder_inputs)
 
+
+decoder_lstm1 = LSTM(lstm_units, return_sequences=True, return_state=True)
+decoder_lstm2 = LSTM(lstm_units, return_sequences=True, return_state=True)
 decoder_lstm = LSTM(lstm_units, return_sequences=True, return_state=True)
 
-decoder_outputs, _, _ = decoder_lstm(final_dex,
-                                     initial_state=encoder_states)
+decoder_outputs, _, _ = decoder_lstm(decoder_lstm2(decoder_lstm1(final_dex,
+                                     initial_state=encoder_states)))
 
 drop = Dropout(0,2)(decoder_outputs)
 
@@ -263,7 +268,8 @@ dex1 = Embedding(num_decoder_tokens,
 
 final_dex2 = dex1(decoder_inputs)
 
-decoder_outputs2, state_h2, state_c2 = decoder_lstm(final_dex2, initial_state=decoder_states_inputs)
+decoder_outputs2, state_h2, state_c2 = decoder_lstm(decoder_lstm2(decoder_lstm1(final_dex2, initial_state=decoder_states_inputs)))
+
 decoder_states2 = [state_h2, state_c2]
 decoder_outputs2 = decoder_dense(decoder_outputs2)
 decoder_model = Model(
